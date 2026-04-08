@@ -96,11 +96,14 @@ export async function generateStaticParams() {
 
 // ✅ Metadata
 export async function generateMetadata(
-  { params }: { params: { post_id: string } }
+  { params }: { params: Promise<{ post_id: string }> }
 ): Promise<Metadata> {
-  const blog = await fetchBlogMeta(params.post_id);
 
-  const canonical = `${SITE_URL}/blog/${params.post_id}`;
+  const { post_id } = await params;
+
+  const blog = await fetchBlogMeta(post_id);
+
+  const canonical = `${SITE_URL}/blog/${post_id}`;
   const title = blog?.seo_title || blog?.title || 'Blog';
   const description =
     blog?.seo_description || blog?.excerpt || '';
