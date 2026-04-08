@@ -14,9 +14,19 @@ type BlogMeta = {
   updated_at?: string;
 };
 
-function unwrapBlog(data: any): BlogMeta | null {
-  if (!data) return null;
-  const inner = data.data || data.blog_post || data.post || data;
+type BlogApiResponse = {
+  data?: BlogMeta;
+  blog_post?: BlogMeta;
+  post?: BlogMeta;
+} & Partial<BlogMeta>;
+
+function unwrapBlog(data: unknown): BlogMeta | null {
+  if (!data || typeof data !== 'object') return null;
+
+  const obj = data as BlogApiResponse;
+  const inner = obj.data || obj.blog_post || obj.post || obj;
+
+  if (!inner) return null;
 
   return {
     id: String(inner.id || ''),
@@ -32,12 +42,19 @@ function unwrapBlog(data: any): BlogMeta | null {
   };
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || '';
-const SITE_URL = process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || 'https://westernproperties.in';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || '';
 
-async function fetchAllPosts() {
+const SITE_URL =
+  process.env.NEXT_PUBLIC_PUBLIC_SITE_URL ||
+  'https://westernproperties.in';
+
+// ✅ Fetch all posts for static generation
+async function fetchAllPosts(): Promise<{ id: string | number }[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/blog-posts?published=true`);
+    const res = await fetch(
+      `${API_BASE}/admin/blog-posts?published=true`
+    );
     const data = await res.json();
     return data?.data || [];
   } catch {
@@ -45,10 +62,14 @@ async function fetchAllPosts() {
   }
 }
 
+// ✅ Fetch single blog
 async function fetchBlogMeta(postId: string): Promise<BlogMeta | null> {
   try {
-    const res = await fetch(`${API_BASE}/admin/blog-posts/${postId}?published=true`);
+    const res = await fetch(
+      `${API_BASE}/admin/blog-posts/${postId}?published=true`
+    );
     if (!res.ok) return null;
+
     const json = await res.json();
     return unwrapBlog(json);
   } catch {
@@ -56,9 +77,11 @@ async function fetchBlogMeta(postId: string): Promise<BlogMeta | null> {
   }
 }
 
-function toAbsoluteAssetUrl(raw: string | undefined): string {
+// ✅ Image helper
+function toAbsoluteAssetUrl(raw?: string): string {
   if (!raw) return `${SITE_URL}/favicon.svg`;
   if (/^https?:\/\//i.test(raw)) return raw;
+
   return `${API_BASE.replace(/\/api$/, '')}/${raw}`;
 }
 
@@ -66,20 +89,21 @@ function toAbsoluteAssetUrl(raw: string | undefined): string {
 export async function generateStaticParams() {
   const posts = await fetchAllPosts();
 
-  return posts.map((post: any) => ({
-    post_id: post.id.toString(),
+  return posts.map((post) => ({
+    post_id: String(post.id),
   }));
 }
 
+// ✅ Metadata
 export async function generateMetadata(
   { params }: { params: { post_id: string } }
 ): Promise<Metadata> {
-
   const blog = await fetchBlogMeta(params.post_id);
 
   const canonical = `${SITE_URL}/blog/${params.post_id}`;
   const title = blog?.seo_title || blog?.title || 'Blog';
-  const description = blog?.seo_description || blog?.excerpt || '';
+  const description =
+    blog?.seo_description || blog?.excerpt || '';
 
   const image = toAbsoluteAssetUrl(blog?.cover_image);
 
@@ -97,6 +121,7 @@ export async function generateMetadata(
   };
 }
 
+// ✅ Page
 export default async function Page(
   { params }: { params: { post_id: string } }
 ) {
