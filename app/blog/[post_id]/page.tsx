@@ -126,9 +126,11 @@ export async function generateMetadata(
 
 // ✅ Page
 export default async function Page(
-  { params }: { params: { post_id: string } }
+  { params }: { params: Promise<{ post_id: string }> }
 ) {
-  const blog = await fetchBlogMeta(params.post_id);
+  const { post_id } = await params;
+
+  const blog = await fetchBlogMeta(post_id);
 
   return <BlogDetailPage blog={blog} />;
 }
