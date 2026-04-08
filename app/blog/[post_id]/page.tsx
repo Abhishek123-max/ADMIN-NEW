@@ -62,10 +62,7 @@ function toAbsoluteAssetUrl(raw: string | undefined): string {
   return `${API_BASE.replace(/\/api$/, '')}/${raw}`;
 }
 
----
-
-## ✅ 🔥 REQUIRED FOR STATIC EXPORT
-
+// ✅ REQUIRED for static export
 export async function generateStaticParams() {
   const posts = await fetchAllPosts();
 
@@ -73,8 +70,6 @@ export async function generateStaticParams() {
     post_id: post.id.toString(),
   }));
 }
-
----
 
 export async function generateMetadata(
   { params }: { params: { post_id: string } }
@@ -101,8 +96,6 @@ export async function generateMetadata(
     },
   };
 }
-
----
 
 export default async function Page(
   { params }: { params: { post_id: string } }
